@@ -54,22 +54,22 @@ func main() {
 		defer response.Body.Close()
 
 		if response.StatusCode == 200 {
-			Functions.HeaderChecker(*response)
+			headerInfo := Functions.HeaderChecker(*response)
 			componentInfo := Functions.BodyParser(*response)
 
-			//err := Functions.CreateAndAppendJSONToFile(domain, headerInfo)
-			//if err != nil {
-			//	log.Fatal(err)
-			//}
-			//
-			////err = Functions.CreateAndAppendJSONToFile("", componentInfo)
-			//if err != nil {
-			//	log.Fatal(err)
-			//}
+			err := Functions.CreateAndAppendJSONToFile(domain, headerInfo)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = Functions.CreateAndAppendJSONToFile("", componentInfo)
+			if err != nil {
+				log.Fatal(err)
+			}
 			Functions.AppendCDN(Functions.DetectCDNs(domain))
 			Functions.DetectCMS(domain)
 			
-			Functions.VulnCheck(componentInfo)
+			Functions.VulnCheck(domain, componentInfo)
 			fmt.Println(response.StatusCode)
 		} else if response.StatusCode == http.StatusConflict {
 			fmt.Println(response.StatusCode)

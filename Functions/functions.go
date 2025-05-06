@@ -467,7 +467,7 @@ func HeaderChecker(response http.Response) []Struct.ComponentDetail {
 
 }
 
-func BodyParser(response http.Response) map[string]Struct.ComponentDetail {
+func BodyParser(response http.Response) []Struct.ComponentDetail {
 
 	body, err := io.ReadAll(response.Body)
 
@@ -512,7 +512,14 @@ func BodyParser(response http.Response) map[string]Struct.ComponentDetail {
 		}
 	}
 
-	return componentDetails
+	// body üzerinden çıkarılan unique teknoloji değerlerini liste haline getiriyor.
+	// map halinde gönderince yazma fonksiyonunda sıkıntı çıkıyor.
+	var componentDetailsList []Struct.ComponentDetail
+	for _, componentDetail := range componentDetails {
+		componentDetailsList = append(componentDetailsList, componentDetail)
+	}
+
+	return componentDetailsList
 }
 
 func DetectCDNs(domain string) map[string]string {
@@ -575,7 +582,7 @@ func AppendCDN(data map[string]string) error {
 
 }
 
-func SnykVulnCheck(component string, version string) bool {
+func SnykVulnCheck(component string, version string) (error bool, url string) {
 
 	baseUrl := "https://security.snyk.io/package/npm/" + strings.TrimSpace(component) + "/" + version
 
@@ -586,12 +593,12 @@ func SnykVulnCheck(component string, version string) bool {
 	defer response.Body.Close()
 
 	if err != nil {
-		return false
+		return false, ""
 	}
 
 	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
-		return false
+		return false, ""
 	}
 	var booleanResult bool = false
 
@@ -599,34 +606,37 @@ func SnykVulnCheck(component string, version string) bool {
 		class, exists := s.Attr("class")
 
 		if exists && class == "table__tbody" {
-			fmt.Println("ZAFİYET VARR ----> ", baseUrl)
 			booleanResult = true
 		}
 	})
 
 	if booleanResult == true {
-		return true
-	} else {
-		return false
+		return true, baseUrl
 	}
 
-	return false
+	return false, ""
 }
 
-func VulnCheck(componentInfo map[string]Struct.ComponentDetail) string {
+func VulnCheck(domain string, componentInfo []Struct.ComponentDetail) string {
+
+	fmt.Println("***************************** Zafiyet taraması " + domain + "*****************************")
+
+	var counter int = 0
 
 	for _, component := range componentInfo {
 		for softOld, softSearch := range Constant.SoftwareType {
 			if strings.ToLower(softOld) == strings.ToLower(component.Component) {
 
-				fmt.Println(softSearch, " ----> ", component.Version)
-
-				SnykVulnCheck(softSearch, component.Version)
-				//if result == false {
-				//
-				//}
+				isVulnerable, url := SnykVulnCheck(softSearch, component.Version)
+				if isVulnerable == true && url != "" {
+					counter++
+					fmt.Println("ZAFİYET VAR -----> ", url)
+				}
 			}
 		}
+	}
+	if counter == 0 {
+		fmt.Println("***************** Zafiyetli bileşen bulunamadı (Manuel kontrol ediniz) *****************")
 	}
 	return ""
 }
