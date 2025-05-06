@@ -1,0 +1,11 @@
+parametre olarak verilen dosyadan link okunur.
+
+hedef web sitesine istek atılır. gelen status code değerine göre işlem yapılır.
+
+Response Header değerleri kontrol edilir.
+
+Body de bulunan .css ve .js dosyaları çıkarılır.    Çıkarılan linkler File Request fonksiyonuna gönderilir.
+
+FileRequest fonskiyonu parametre olarak diziyi alır ve tek tek istek gönderir. İstek gönderildikten sonra yorum satırları çıkarılır ve geri döndürülür.
+
+Yorum satırlarından Versiyon ve Tip tespiti yapmak için fonksiyona gönderilir. Döndürülen bu değerler bir map değerine key olarak eklenir.
