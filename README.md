@@ -4,15 +4,15 @@ TechFinder, verilen bir domain listesindeki web sitelerinin kullandıkları tekn
 ### Nasıl Çalışır?
 TechFinder, hedef web sitesinden elde ettiği çeşitli verileri analiz ederek kullanılan teknolojileri çıkarmaya çalışır:
 
-HTTP Response Header bilgileri üzerinden sunucu, framework veya diğer teknolojiler belirlenmeye çalışılır.
+- HTTP Response Header bilgileri üzerinden sunucu, framework veya diğer teknolojiler belirlenmeye çalışılır.
 
-HTML Body içeriğinden:
+- HTML Body içeriğinden:
 
-Yorum satırları taranarak bileşen adı ve sürüm numarası tespit edilir.
+    - Yorum satırları taranarak bileşen adı ve sürüm numarası tespit edilir.
 
-CSS ve JavaScript dosyaları gibi referanslar üzerinden regex ile teknoloji analizi yapılır.
+    - CSS ve JavaScript dosyaları gibi referanslar üzerinden regex ile teknoloji analizi yapılır.
 
-Cookie değerleri üzerinden teknolojilere dair ipuçları toplanır.
+- Cookie değerleri üzerinden teknolojilere dair ipuçları toplanır.
 
 - Mevcut Özellikler
     - Header, body ve cookie analizine dayalı teknoloji tespiti.
