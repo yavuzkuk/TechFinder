@@ -1,27 +1,25 @@
 # TechFinder
-TechFinder, verilen bir domain listesindeki web sitelerinin kullandıkları teknolojileri tespit etmek amacıyla geliştirilmiş bir analiz aracıdır.
+TechFinder, verilen bir domain listesi üzerinden web sitelerinin kullandığı teknolojileri tespit etmek amacıyla geliştirilmiş bir analiz aracıdır.
 
 ### Nasıl Çalışır?
-TechFinder, hedef web sitesinden elde ettiği çeşitli verileri analiz ederek kullanılan teknolojileri çıkarmaya çalışır:
+TechFinder, hedef web sitelerine yaptığı analizlerde aşağıdaki yöntemleri kullanarak kullanılan teknolojileri belirlemeye çalışır:
 
 - HTTP Response Header bilgileri üzerinden sunucu, framework veya diğer teknolojiler belirlenmeye çalışılır.
 
 - HTML Body içeriğinden:
 
-    - Yorum satırları taranarak bileşen adı ve sürüm numarası tespit edilir.
+    - Yorum satırları taranarak kullanılan teknolojilerin adları ve sürüm numaraları bulunmaya çalışılır.
 
-    - CSS ve JavaScript dosyaları gibi referanslar üzerinden regex ile teknoloji analizi yapılır.
+    - CSS ve JavaScript dosyalarına ait referanslar analiz edilerek regex ile teknoloji tespiti yapılır.
 
-- Cookie değerleri üzerinden teknolojilere dair ipuçları toplanır.
+- Cookie değerleri üzerinden teknolojilere dair ipuçları toplanır. 
+    - Web uygulamasında kullanılan altyapı hakkında ipuçları elde edilir.
 
-- Mevcut Özellikler
-    - Header, body ve cookie analizine dayalı teknoloji tespiti.
+- Elde ettiği bileşen bilgilerini <b>[Snyk](https://snyk.io/)</b> ve <b>[CVEDetails](https://www.cvedetails.com/)</b> adreslerinden kontrol eder.
 
-    - Versiyon bilgisi ile birlikte bileşen tanımlama.
+- Ayrıca, hedefe doğrudan analiz yapılmadan önce:
+    -   curl komutu ile hedef sitenin canlı olup olmadığı, HTTP yönlendirmesi (3xx) yapıp yapmadığı kontrol edilir ve yönlendirme takip edilir.
 
-    - Yorum satırları üzerinden teknoloji tahmini.
+----
 
-- Yapılacaklar
-    - HTTP yönlendirmeleri (3xx) otomatik olarak takip edilmeli.
-
-    - [Snyk](https://snyk.io/) haricinde farklı güvenlik ve teknoloji analiz servisleri entegre edilmeli.
+<p style="font-size: smaller; color: gray;"><em>Araç yanlışlık payı içerebilir manuel teyit edilmelidir.</em></p>
