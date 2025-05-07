@@ -34,9 +34,9 @@ var TechnologyHeaders = []string{
 	"X-CDN",
 	"X-Amz-Cf-Id",
 	"Via",
-	"X-Cache",
-	"X-Cache-Hits",
-	"X-Served-By",
+	//"X-Cache",
+	//"X-Cache-Hits",
+	//"X-Served-By",
 	"X-Edge-Location",
 	"X-Rails-Version",
 	"X-Rack-Cache",
@@ -62,7 +62,7 @@ var TechnologyHeaders = []string{
 	//"X-Content-Type-Options",
 	//"X-Frame-Options",
 	//"X-XSS-Protection",
-	"Etag",
+	//"Etag",
 	"X-Request-ID",
 	"X-Runtime",
 	"X-Response-Time",
@@ -103,10 +103,10 @@ var TechnologyHeaders = []string{
 	//"Vary",
 	"X-UA-Compatible",
 	"Access-Control-Allow-Origin",
-	"Accept-Ranges",
-	"Alt-Svc",
-	"Referrer-Policy",
-	"Permissions-Policy",
+	//"Accept-Ranges",
+	//"Alt-Svc",ff
+	//"Referrer-Policy",
+	//"Permissions-Policy",
 	"Timing-Allow-Origin",
 	"set-cookie",
 }
@@ -274,6 +274,9 @@ var SoftwareType = map[string]string{
 	"jQuery Browser Plugin":     "jquery.browser",
 	"jQuery pagination plugin":  "jq-pagination",
 	"Colorbox":                  "jquery-colorbox",
+	"carousel.js":               "carousel-js",
+	"Spectrum Colorpicker":      "spectrum-colorpicker",
+	"Font Awesome":              "font-awesome",
 }
 
 var TechList = []string{

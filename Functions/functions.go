@@ -3,6 +3,7 @@ package Functions
 import (
 	"Wapplyzer/Constant"
 	"Wapplyzer/Struct"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -12,8 +13,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 func ErrorHandler(err error) {
@@ -29,6 +32,7 @@ type CommentInfo struct {
 
 func Client() http.Client {
 	return http.Client{
+		Timeout: time.Second * 10,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -92,13 +96,8 @@ func CSSLinkExtract(body []byte, response http.Response) map[string]string {
 				cssLinks[href] = ""
 			} else if strings.HasPrefix(href, "//") {
 				newHref, _ := strings.CutPrefix(href, "//")
-				if strings.HasSuffix(response.Request.URL.String(), "/") {
-					newUrl = response.Request.URL.String() + newHref
-					cssLinks[newUrl] = ""
-				} else {
-					newUrl = response.Request.URL.String() + "/" + href
-					cssLinks[newUrl] = ""
-				}
+				newUrl = response.Request.URL.Scheme + "://" + newHref
+				cssLinks[newUrl] = ""
 			} else if strings.HasPrefix(href, "/") {
 				// "/assets/asdasdsadad.css
 				if strings.HasSuffix(response.Request.URL.String(), "/") {
@@ -402,7 +401,7 @@ func CreateAndAppendJSONToFile(domain string, content []Struct.ComponentDetail) 
 	} else {
 		// herhangi bir değer bulunamadı
 		if domain == "" {
-			file.Write([]byte("****************** Body üzerinden bilgi bulunamadı *********************"))
+			file.Write([]byte("****************** Body üzerinden bilgi bulunamadı *********************\n"))
 		} else {
 			file.Write([]byte("****************** Response headerdan bilgi bulunamadı ****************\n"))
 		}
@@ -567,7 +566,7 @@ func AppendCDN(data map[string]string) error {
 	defer file.Close()
 
 	if len(data) == 0 {
-		file.Write([]byte("******************************* CDN bulunamadı ***************************************"))
+		file.Write([]byte("******************************* CDN bulunamadı ***************************************\n"))
 	} else {
 		file.Write([]byte("********************************** CDN ********************************\n"))
 		for key := range data {
@@ -611,32 +610,167 @@ func SnykVulnCheck(component string, version string) (error bool, url string) {
 	})
 
 	if booleanResult == true {
+		fmt.Println("ZAFİYET VAR ----> ", baseUrl)
 		return true, baseUrl
 	}
 
 	return false, ""
 }
 
-func VulnCheck(domain string, componentInfo []Struct.ComponentDetail) string {
+func CVEDetails(component string, version string) (error bool, url string) {
+	// vendor ve product name ayrı ayrı gönderilecek
+	if strings.Contains(component, " ") {
+		component = strings.ReplaceAll(component, " ", "+")
+	}
+	baseUrl1 := "https://www.cvedetails.com/version-search.php?page=1&vendor=" + component + "&product=&version=" + version
 
-	fmt.Println("***************************** Zafiyet taraması " + domain + "*****************************")
+	var notFound1 int = 0
+	var notFound2 int = 0
+	client := Client()
+	request := Request(baseUrl1)
 
+	response, _ := client.Do(request)
+
+	if response.StatusCode == http.StatusOK && strings.Contains(strings.TrimSpace(response.Request.URL.String()), "vendor_id") {
+		doc, _ := goquery.NewDocumentFromReader(response.Body)
+		firstDiv := doc.Find("div#searchresults div").First()
+
+		firstDivText := strings.TrimSpace(firstDiv.Text())
+		if firstDivText != "" && strings.ToLower(firstDivText) == strings.ToLower("Could not find any CVEs matching the selected criteria") {
+			notFound1++
+		}
+	} else {
+		defer response.Body.Close()
+
+		doc, err := goquery.NewDocumentFromReader(response.Body)
+		if err != nil {
+			log.Fatalf("Body parse hatası: %v", err)
+		}
+
+		var text string
+		doc.Find("tbody tr td").Each(func(i int, s *goquery.Selection) {
+			text = strings.TrimSpace(s.Text())
+			if strings.ToLower(text) == "no matches" {
+				notFound1++
+			}
+		})
+	}
+
+	baseUrl2 := "https://www.cvedetails.com/version-search.php?page=1&vendor=&product=" + component + "&version=" + version
+
+	request = Request(baseUrl2)
+	response, _ = client.Do(request)
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusOK && strings.Contains(strings.TrimSpace(response.Request.URL.String()), "vendor_id") {
+		doc, _ := goquery.NewDocumentFromReader(response.Body)
+		firstDiv := doc.Find("div#searchresults div").First()
+
+		firstDivText := strings.TrimSpace(firstDiv.Text())
+		if firstDivText != "" && strings.ToLower(firstDivText) == strings.ToLower("Could not find any CVEs matching the selected criteria") {
+			notFound2++
+		}
+	} else {
+		doc, _ := goquery.NewDocumentFromReader(response.Body)
+		doc.Find("tbody tr td").Each(func(i int, s *goquery.Selection) {
+			text := strings.TrimSpace(s.Text())
+			if strings.ToLower(text) == "no matches" {
+				notFound2++
+			}
+		})
+	}
+
+	if notFound1 == 0 {
+		fmt.Println("ZAFİYET VAR ----> ", baseUrl1)
+		return true, baseUrl1
+	}
+
+	if notFound2 == 0 {
+		fmt.Println("ZAFİYET VAR ----> ", baseUrl2)
+		return true, baseUrl2
+	}
+
+	return false, ""
+}
+
+func VulnCheck(domain string, componentInfo []Struct.ComponentDetail) []string {
+
+	fmt.Println("********************** Zafiyet taraması ************************")
 	var counter int = 0
+
+	vulnUrlList := []string{}
 
 	for _, component := range componentInfo {
 		for softOld, softSearch := range Constant.SoftwareType {
 			if strings.ToLower(softOld) == strings.ToLower(component.Component) {
-
 				isVulnerable, url := SnykVulnCheck(softSearch, component.Version)
 				if isVulnerable == true && url != "" {
 					counter++
-					fmt.Println("ZAFİYET VAR -----> ", url)
+					vulnUrlList = append(vulnUrlList, url)
+				}
+				isVulnerable, url = CVEDetails(component.Component, component.Version)
+				if isVulnerable == true && url != "" {
+					counter++
+					vulnUrlList = append(vulnUrlList, url)
 				}
 			}
 		}
 	}
 	if counter == 0 {
-		fmt.Println("***************** Zafiyetli bileşen bulunamadı (Manuel kontrol ediniz) *****************")
+		fmt.Println("***************** Zafiyetli bileşen bulunamadı (Manuel kontrol ediniz) *****************\n")
+	} else {
+		return vulnUrlList
 	}
-	return ""
+	return []string{}
+}
+
+func CheckRedirect(url string) (int, string) {
+	cmd := exec.Command("curl", "-I", "-s", "--max-time", "5", url)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	err := cmd.Run()
+	if err != nil {
+		//log.Printf("cURL hatası: %v", err)
+		return 0, ""
+	}
+
+	headers := stdout.String()
+
+	statusCode := 0
+	for _, line := range strings.Split(headers, "\n") {
+		if strings.Contains(line, "HTTP/") && strings.Contains(line, " ") {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				fmt.Sscanf(fields[1], "%d", &statusCode)
+				break
+			}
+		}
+	}
+
+	location := ""
+	for _, line := range strings.Split(headers, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(strings.ToLower(line), "location:") {
+			location = strings.TrimSpace(strings.TrimPrefix(strings.ToLower(line), "location:"))
+			break
+		}
+	}
+
+	return statusCode, location
+}
+
+func AppendVulnLink(urlLinks []string) {
+
+	file, _ := os.OpenFile("output.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	defer file.Close()
+
+	for _, url := range urlLinks {
+		url = strings.TrimSpace(url)
+
+		if url != "" {
+			file.WriteString("ZAFİYET VAR ----> " + url + "\n")
+		}
+	}
 }

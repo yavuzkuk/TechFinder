@@ -11,8 +11,12 @@ import (
 	"strings"
 )
 
-func main() {
+// https://www.cybersecurity-help.cz/vdb/twbs/bootstrap/3.3.2/
+// https://www.cybersecurity-help.cz/vdb/jquery/  bu adres üzerinden zafiyet var mı diye kontrol edilir.
+// farklı farklı paketleri var.
+// buradan araştırılmalı
 
+func main() {
 	err := os.WriteFile("output.txt", []byte(""), 0644) // içeriği temizler
 	if err != nil {
 		log.Fatalf("Dosya temizlenemedi: %v", err)
@@ -36,6 +40,17 @@ func main() {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		statusCode, location := Functions.CheckRedirect(line)
+
+		for {
+			if statusCode >= 300 && statusCode < 400 && strings.TrimSpace(location) != "" {
+				line = location
+				statusCode, location = Functions.CheckRedirect(strings.TrimSpace(location))
+			} else {
+				break
+			}
+		}
+
 		var domain string
 		if line == "" {
 			continue
@@ -49,7 +64,9 @@ func main() {
 
 		response, err := client.Do(request)
 		if err != nil {
-			break
+			fmt.Println("!!!!!!!!!!!!!!! 10 saniye cevap alınamadı !!!!!!!!!!!!!!!\n")
+			//fmt.Println("İstek hatası:", err)
+			continue
 		}
 		defer response.Body.Close()
 
@@ -68,14 +85,13 @@ func main() {
 			}
 			Functions.AppendCDN(Functions.DetectCDNs(domain))
 			Functions.DetectCMS(domain)
-			
-			Functions.VulnCheck(domain, componentInfo)
-			fmt.Println(response.StatusCode)
+
+			vulnLink := Functions.VulnCheck(domain, componentInfo)
+			if len(vulnLink) != 0 {
+				Functions.AppendVulnLink(vulnLink)
+			}
 		} else if response.StatusCode == http.StatusConflict {
 			fmt.Println(response.StatusCode)
-		} else {
-			fmt.Println(response.StatusCode)
 		}
-		// 302 yada 301 gibi değer döndürenleri Location değerine göre tekrardan o sayfaya yönlendirebiliriz.
 	}
 }

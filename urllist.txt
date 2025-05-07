@@ -1,0 +1,6 @@
+vpn.carrefoursa.com
+hayaletaglar.carrefoursa.com
+katalog.carrefoursa.com
+ihracatportali.carrefoursa.com
+appapi.carrefoursa.com
+cybersecurity-help.cz
